@@ -25,7 +25,7 @@ jobs:
           python3 - <<'PY'
           import os,json
           from pathlib import Path
-          key=os.environ.get('CYBERCHAT_SUPABASE_PUBLISHABLE_KEY','')
+          key=os.environ.get('CYBERCHAT_SUPABASE_PUBLISHABLE_KEY') or 'sb_publishable_xTW2vZ0RyZg_k-LrwAPWKg_UOLVS0ZZ'
           config={'url':'https://hdilpmoervxkkapvfkdc.supabase.co','publishableKey':key}
           Path('app/src/main/assets/config.js').write_text('window.CYBERCHAT_CONFIG='+json.dumps(config)+';')
           PY
