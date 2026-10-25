@@ -4,6 +4,8 @@ import android.app.*;
 import android.os.*;
 import android.content.*;
 import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.*;
@@ -18,6 +20,7 @@ public class MainActivity extends Activity {
  int dp(float n){return (int)(getResources().getDisplayMetrics().density*n+.5f);}
  GradientDrawable bg(int color,int stroke,int rad){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(rad));if(stroke!=0)d.setStroke(dp(1),stroke);return d;}
  TextView text(String s,int size,int color,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextColor(color);t.setTextSize(size);t.setGravity(Gravity.CENTER_VERTICAL);t.setPadding(dp(4),dp(4),dp(4),dp(4));if(bold)t.setTypeface(null,Typeface.BOLD);return t;}
+ class Glyph extends View {String kind;Paint p=new Paint(3);Glyph(String k){super(MainActivity.this);kind=k;}protected void onDraw(Canvas c){float x=getWidth()/2f,y=getHeight()/2f,r=dp(9);p.setColor(CYAN);p.setStrokeWidth(dp(2));p.setStyle(Paint.Style.STROKE);p.setStrokeCap(Paint.Cap.ROUND);switch(kind){case "Chats":c.drawRoundRect(x-r,y-r*.7f,x+r,y+r*.5f,dp(3),dp(3),p);c.drawLine(x-r*.5f,y+r*.5f,x-r*.8f,y+r,p);break;case "Groups":c.drawCircle(x,y-r*.4f,dp(4),p);c.drawArc(x-r,y,x+r,y+r,190,160,false,p);break;case "Meetings":c.drawRoundRect(x-r,y-r*.7f,x+r*.3f,y+r*.7f,dp(2),dp(2),p);c.drawLine(x+r*.3f,y-r*.3f,x+r,y-r*.6f,p);c.drawLine(x+r,y-r*.6f,x+r,y+r*.6f,p);c.drawLine(x+r,y+r*.6f,x+r*.3f,y+r*.3f,p);break;case "Files":c.drawRoundRect(x-r,y-r*.4f,x+r,y+r*.7f,dp(2),dp(2),p);c.drawLine(x-r,y-r*.4f,x-r*.4f,y-r*.8f,p);c.drawLine(x-r*.4f,y-r*.8f,x+r*.1f,y-r*.8f,p);break;case "AI":c.drawLine(x,y-r,x+r*.75f,y+r*.7f,p);c.drawLine(x+r*.75f,y+r*.7f,x,y+r*.2f,p);c.drawLine(x,y+r*.2f,x-r*.75f,y+r*.7f,p);c.drawLine(x-r*.75f,y+r*.7f,x,y-r,p);break;default:c.drawCircle(x,y,dp(7),p);c.drawLine(x,y-r*.4f,x,y+r*.4f,p);}}}
  LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);return l;}
  LinearLayout row(){LinearLayout l=new LinearLayout(this);l.setOrientation(0);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
  void add(LinearLayout p,View v){p.addView(v,new LinearLayout.LayoutParams(-1,-2));}
@@ -28,12 +31,12 @@ public class MainActivity extends Activity {
  void toast(String msg){Toast.makeText(this,msg,Toast.LENGTH_SHORT).show();}
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);prefs=getSharedPreferences("cyberchat",0);aiName=prefs.getString("ai","CyberAI");profile=prefs.getString("profile","DarthWolf");show("Chats");}
  void show(String p){page=p;root=column();root.setBackgroundColor(BG);setContentView(root);
- LinearLayout top=row();top.setPadding(dp(16),dp(14),dp(12),dp(12));TextView logo=text("◈",30,CYAN,true);top.addView(logo);TextView title=text("CyberChat",25,TEXT,true);top.addView(title);TextView sub=text("  CYBERPULSE",10,CYAN,true);top.addView(sub);add(root,top);
+ LinearLayout top=row();top.setPadding(dp(16),dp(14),dp(12),dp(12));Glyph logo=new Glyph("AI");top.addView(logo,new LinearLayout.LayoutParams(dp(42),dp(42)));TextView title=text("CyberChat",22,TEXT,true);top.addView(title);TextView sub=text("  CYBERPULSE",10,CYAN,true);top.addView(sub);add(root,top);
  View line=new View(this);line.setBackgroundColor(0xff17467b);root.addView(line,new LinearLayout.LayoutParams(-1,dp(1)));
  LinearLayout area=row();area.setGravity(Gravity.TOP);root.addView(area,new LinearLayout.LayoutParams(-1,0,1));
- nav=column();nav.setPadding(dp(5),dp(12),dp(5),0);nav.setBackgroundColor(0xff050f22);area.addView(nav,new LinearLayout.LayoutParams(dp(83),-1));
+ nav=column();nav.setPadding(dp(5),dp(12),dp(5),0);nav.setBackgroundColor(0xff050f22);area.addView(nav,new LinearLayout.LayoutParams(dp(79),-1));
  String[][] links={{"Chats","▤"},{"Groups","♧"},{"Meetings","▣"},{"Files","▱"},{"AI","✦"},{"Settings","⚙"}};
- for(String[] a:links){TextView item=text(a[1]+"\n"+a[0],11,p.equals(a[0])?CYAN:MUTED,p.equals(a[0]));item.setGravity(Gravity.CENTER);item.setPadding(dp(3),dp(15),dp(3),dp(15));if(p.equals(a[0]))item.setBackground(bg(0xff07356d,BLUE,12));item.setOnClickListener(v->show(a[0]));add(nav,item);gap(nav,7);}
+ for(String[] a:links){LinearLayout item=column();item.setGravity(Gravity.CENTER);item.setPadding(dp(2),dp(11),dp(2),dp(11));Glyph glyph=new Glyph(a[0]);item.addView(glyph,new LinearLayout.LayoutParams(dp(32),dp(32)));TextView label=text(a[0],10,p.equals(a[0])?CYAN:MUTED,p.equals(a[0]));label.setGravity(Gravity.CENTER);add(item,label);if(p.equals(a[0]))item.setBackground(bg(0xff07356d,BLUE,12));item.setOnClickListener(v->show(a[0]));add(nav,item);gap(nav,7);}
  ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);area.addView(scroll,new LinearLayout.LayoutParams(0,-1,1));body=column();body.setPadding(dp(13),dp(13),dp(13),dp(24));scroll.addView(body);
  switch(p){case "Chats":home();break;case "Groups":groups();break;case "Meetings":meetings();break;case "Files":files();break;case "AI":ai();break;case "Settings":settings();break;case "Appearance":appearance();break;case "Personalization":personalization();break;case "AI Settings":aiSettings();break;default:conversation(p);}
  }
