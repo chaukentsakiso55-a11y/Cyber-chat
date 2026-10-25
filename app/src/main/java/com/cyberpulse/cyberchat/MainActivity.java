@@ -18,7 +18,7 @@ public class MainActivity extends Activity {
  if(picker!=null)picker.onReceiveValue(null);picker=cb;
  try{startActivityForResult(p.createIntent(),PICK);return true;}catch(Exception e){picker=null;return false;}
  }
- });setContentView(web);web.loadUrl("file:///android_asset/index.html");
+ });setContentView(web);web.loadUrl("file:///android_asset/online.html");
  }
  @Override protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(r==PICK&&picker!=null){picker.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(c,d));picker=null;}}
  @Override public void onBackPressed(){web.evaluateJavascript("(function(){if(document.querySelector('.split.open .back')){document.querySelector('.split.open .back').click();return true;}if(document.querySelector('[data-a=sback]')){document.querySelector('[data-a=sback]').click();return true;}return false})()",v->{if("false".equals(v))super.onBackPressed();});}
