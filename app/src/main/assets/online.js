@@ -32,7 +32,51 @@ $('resetPassword').onclick=()=>CyberAuth.reset($('email').value.trim());
 $('verifyStatus').onclick=()=>CyberAuth.status();
 $('firebaseLogout').onclick=()=>CyberAuth.logout();
 $('logout').onclick=()=>CyberAuth.logout();
-window.onCyberAuth=e=>{if(e.type==='token'){window.firebaseIdToken=e.token;return;}notice(e.message||'');let active=!!e.uid;$('auth').hidden=active;$('firebaseStatus').hidden=!active;$('app').hidden=true;$('codeGate').hidden=true;if(active){$('firebaseAccount').textContent=(e.email||e.uid)+(e.verified?' - Verified':' - Email not verified');$('resendVerification').hidden=!!e.verified;$('verifyStatus').hidden=!!e.verified;$('accountNext').hidden=!e.verified;}};
+function showFirebaseHome(e){
+ user={id:e.uid,email:e.email||'',firebase:true};
+ $('auth').hidden=true;$('firebaseStatus').hidden=true;$('codeGate').hidden=true;$('app').hidden=false;
+ $('adminPanel').hidden=true;
+ $('directory').textContent='Connecting member directory…';
+ $('rooms').textContent='Connecting conversations…';
+ $('chat').hidden=true;
+ notice('Welcome to CyberChat · '+(e.email||'Member'));
+ $('backendStatus').textContent='Connecting messaging…';
+ if(window.CyberAuth)CyberAuth.token();
+}
+window.onCyberAuth=async e=>{
+ if(e.type==='token'){
+  window.firebaseIdToken=e.token;
+  if(!user?.firebase)return;
+  try{
+   const claims=JSON.parse(atob(e.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+   if(claims.role!=='authenticated')throw Error('Messaging setup incomplete: Firebase authenticated role claim is missing.');
+   access=e.token;
+   const response=await api('/rest/v1/rpc/cyberchat_my_role','POST',{});
+   if(response==='pending')throw Error('Messaging profile is not provisioned in Supabase yet.');
+   $('directory').textContent='';$('rooms').textContent='';
+   directory();rooms();
+   if(refreshTimer)clearInterval(refreshTimer);
+   refreshTimer=setInterval(()=>{if(selected)messages()},4000);
+   notice('CyberChat messaging connected');
+  }catch(err){
+   access='';
+   $('directory').textContent='Messaging unavailable until Firebase–Supabase account integration is configured.';
+   $('rooms').textContent=err.message;
+   notice('Signed in · Messaging connection pending');
+  }
+  return;
+ }
+ if(e.type==='logout'){
+  access='';user=null;selected=null;window.firebaseIdToken=null;
+  if(refreshTimer)clearInterval(refreshTimer);
+  $('auth').hidden=false;$('firebaseStatus').hidden=true;$('app').hidden=true;
+  $('credentials').hidden=true;$('auth').querySelector('.welcome').hidden=false;
+  notice('Signed out');return;
+ }
+ if(e.type==='error'){notice(e.message||'Sign-in failed');return;}
+ if(e.uid){showFirebaseHome(e);return;}
+ notice(e.message||'Sign in to CyberChat');
+};
 CyberAuth.status();
 }
 
@@ -75,22 +119,3 @@ $('backWelcome').onclick=()=>{credentials.hidden=true;welcome.hidden=false;};
 $('googleLogin').onclick=()=>{if(window.CyberAuth)CyberAuth.google();else notice('Google sign-in requires the Android app.');};
 $('resendVerification').onclick=()=>{if(window.CyberAuth)CyberAuth.resendVerification();};
 
-$('accountNext').onclick=()=>{
- $('backendStatus').textContent='Checking secure CyberPulse messaging access…';
- if(!window.CyberAuth){$('backendStatus').textContent='Android Firebase connection unavailable.';return;}
- window.CyberAuth.token();
- const previous=window.onCyberAuth;
- window.onCyberAuth=async event=>{
-  if(event.type!=='token'){previous(event);return;}
-  window.onCyberAuth=previous;
-  try{
-   const payload=JSON.parse(atob(event.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-   if(payload.role!=='authenticated')throw Error('Firebase user is missing the authenticated custom claim. Configure Firebase Admin custom claims and refresh your session.');
-   const result=await fetch(base+'/rest/v1/rpc/cyberchat_my_role',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+event.token,'Content-Type':'application/json'},body:'{}'});
-   if(!result.ok)throw Error('Supabase third-party Firebase authentication is not configured or access was denied ('+result.status+').');
-   const role=await result.json();
-   if(role==='pending')throw Error('Your CyberPulse membership still needs approval or an access code.');
-   throw Error('Authentication connected, but Firebase account migration and member identity mapping must be completed before messaging can open.');
-  }catch(err){$('backendStatus').textContent=err.message;}
- };
-};
