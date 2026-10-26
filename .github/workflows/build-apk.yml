@@ -46,15 +46,14 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Prepare direct-download APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk CyberChat-v0.2.0-beta.apk
-      - name: Publish APK to GitHub Releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          gh auth status
-          if gh release view v0.2.0-beta --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release upload v0.2.0-beta CyberChat-v0.2.0-beta.apk --repo "$GH_REPO" --clobber
-          else
-            gh release create v0.2.0-beta CyberChat-v0.2.0-beta.apk --repo "$GH_REPO" --target "$GITHUB_SHA" --title 'CyberChat v0.2.0 Beta' --notes 'Android debug APK for testing. Some requested features are not yet implemented.' --prerelease
-          fi
+        run: cp app/build/outputs/apk/debug/app-debug.apk CyberChat-v0.2.1-beta.apk
+      - name: Publish direct-download APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.2.1-beta
+          name: CyberChat v0.2.1 Beta
+          prerelease: true
+          generate_release_notes: false
+          body: Android beta debug APK for testing. Not all planned features are implemented.
+          files: CyberChat-v0.2.0-beta.apk
+          fail_on_unmatched_files: true
