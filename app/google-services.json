@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "612486996930",
+    "project_id": "cyber-chat-33218",
+    "storage_bucket": "cyber-chat-33218.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612486996930:android:39ca798506486b4fd1ec5b",
+        "android_client_info": {
+          "package_name": "com.cyberpulse.cyberchat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "612486996930-cqh2huj4a6i5mv86ooiuvdq8f8jtppd5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDf7G1BUEUQGoV33I5ncifvl327bw_bIeg"
+        }
+      ]
+    }
+  ],
+  "configuration_version": "1"
+}
