@@ -35,3 +35,30 @@ $('logout').onclick=()=>CyberAuth.logout();
 window.onCyberAuth=e=>{notice(e.message||'');let active=!!e.uid;$('auth').hidden=active;$('firebaseStatus').hidden=!active;$('app').hidden=true;$('codeGate').hidden=true;if(active)$('firebaseAccount').textContent=(e.email||e.uid)+(e.verified?' - Verified':' - Email not verified')};
 CyberAuth.status();
 }
+
+let wallpaperUrl=null;
+const wallpaperVideo=$('chatWallpaper');
+$('wallpaperFile').addEventListener('change',e=>{
+ const file=e.target.files&&e.target.files[0];
+ if(!file)return;
+ if(!file.type.startsWith('video/'))return notice('Choose a video file.');
+ if(wallpaperUrl)URL.revokeObjectURL(wallpaperUrl);
+ wallpaperUrl=URL.createObjectURL(file);
+ wallpaperVideo.src=wallpaperUrl;
+ wallpaperVideo.style.display='block';
+ wallpaperVideo.muted=true;
+ $('wallpaperSound').checked=false;
+ wallpaperVideo.play().catch(()=>notice('Tap the video to play wallpaper.'));
+ notice('Video wallpaper applied. Sound is muted by default.');
+});
+$('wallpaperSound').addEventListener('change',e=>{
+ wallpaperVideo.muted=!e.target.checked;
+ notice(e.target.checked?'Wallpaper sound enabled':'Wallpaper sound muted');
+});
+$('clearWallpaper').addEventListener('click',()=>{
+ wallpaperVideo.pause();wallpaperVideo.removeAttribute('src');wallpaperVideo.load();
+ wallpaperVideo.style.display='none';
+ if(wallpaperUrl)URL.revokeObjectURL(wallpaperUrl);
+ wallpaperUrl=null;$('wallpaperSound').checked=false;
+ notice('Video wallpaper removed.');
+});
