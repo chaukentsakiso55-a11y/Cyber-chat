@@ -30,7 +30,7 @@ jobs:
           Path('app/src/main/assets/config.js').write_text('window.CYBERCHAT_CONFIG='+json.dumps(config)+';')
           PY
       - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: CyberChat-APK
