@@ -64,3 +64,13 @@ $('clearWallpaper').addEventListener('click',()=>{
 });
 
 $('applyIcon').onclick=()=>{if(!window.CyberAuth)return notice('Android icon settings unavailable');CyberAuth.setIcon($('iconChoice').value);};
+
+const welcome=$('auth').querySelector('.welcome');
+const credentials=$('credentials');
+function openCredentials(mode){welcome.hidden=true;credentials.hidden=false;$('authHeading').textContent=mode==='register'?'Create CyberPulse Account':'Sign in to CyberChat';$('nickname').hidden=mode!=='register';$('signup').hidden=mode!=='register';$('login').hidden=mode==='register';}
+$('welcomeLogin').onclick=()=>openCredentials('login');
+$('welcomeRegister').onclick=()=>openCredentials('register');
+$('emailLogin').onclick=()=>openCredentials('login');
+$('backWelcome').onclick=()=>{credentials.hidden=true;welcome.hidden=false;};
+$('googleLogin').onclick=()=>notice('Google sign-in is not yet available in this build. Use email sign-in.');
+$('resendVerification').onclick=()=>{if(window.CyberAuth)CyberAuth.resendVerification();};
