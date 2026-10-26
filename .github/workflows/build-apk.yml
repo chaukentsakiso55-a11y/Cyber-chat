@@ -50,9 +50,11 @@ jobs:
       - name: Publish APK to GitHub Releases
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          if gh release view v0.2.0-beta >/dev/null 2>&1; then
-            gh release upload v0.2.0-beta CyberChat-v0.2.0-beta.apk --clobber
+          gh auth status
+          if gh release view v0.2.0-beta --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload v0.2.0-beta CyberChat-v0.2.0-beta.apk --repo "$GH_REPO" --clobber
           else
-            gh release create v0.2.0-beta CyberChat-v0.2.0-beta.apk --target "$GITHUB_SHA" --title 'CyberChat v0.2.0 Beta' --notes 'Android debug APK for testing. Some requested features are not yet implemented.' --prerelease
+            gh release create v0.2.0-beta CyberChat-v0.2.0-beta.apk --repo "$GH_REPO" --target "$GITHUB_SHA" --title 'CyberChat v0.2.0 Beta' --notes 'Android debug APK for testing. Some requested features are not yet implemented.' --prerelease
           fi
