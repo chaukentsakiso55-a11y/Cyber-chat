@@ -1,4 +1,4 @@
 plugins { id 'com.android.application'; id 'com.google.gms.google-services' }
 android { namespace 'com.cyberpulse.cyberchat'; compileSdk 35
  defaultConfig { applicationId 'com.cyberpulse.cyberchat'; minSdk 24; targetSdk 35; versionCode 3; versionName '0.3.0-beta' } }
-dependencies { implementation platform('com.google.firebase:firebase-bom:33.7.0'); implementation 'com.google.firebase:firebase-auth' }
+dependencies { implementation platform('com.google.firebase:firebase-bom:33.7.0'); implementation 'com.google.firebase:firebase-auth'; implementation 'com.google.android.gms:play-services-auth:21.2.0' }
