@@ -74,3 +74,23 @@ $('emailLogin').onclick=()=>openCredentials('login');
 $('backWelcome').onclick=()=>{credentials.hidden=true;welcome.hidden=false;};
 $('googleLogin').onclick=()=>{if(window.CyberAuth)CyberAuth.google();else notice('Google sign-in requires the Android app.');};
 $('resendVerification').onclick=()=>{if(window.CyberAuth)CyberAuth.resendVerification();};
+
+$('accountNext').onclick=()=>{
+ $('backendStatus').textContent='Checking secure CyberPulse messaging access…';
+ if(!window.CyberAuth){$('backendStatus').textContent='Android Firebase connection unavailable.';return;}
+ window.CyberAuth.token();
+ const previous=window.onCyberAuth;
+ window.onCyberAuth=async event=>{
+  if(event.type!=='token'){previous(event);return;}
+  window.onCyberAuth=previous;
+  try{
+   const payload=JSON.parse(atob(event.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+   if(payload.role!=='authenticated')throw Error('Firebase user is missing the authenticated custom claim. Configure Firebase Admin custom claims and refresh your session.');
+   const result=await fetch(base+'/rest/v1/rpc/cyberchat_my_role',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+event.token,'Content-Type':'application/json'},body:'{}'});
+   if(!result.ok)throw Error('Supabase third-party Firebase authentication is not configured or access was denied ('+result.status+').');
+   const role=await result.json();
+   if(role==='pending')throw Error('Your CyberPulse membership still needs approval or an access code.');
+   throw Error('Authentication connected, but Firebase account migration and member identity mapping must be completed before messaging can open.');
+  }catch(err){$('backendStatus').textContent=err.message;}
+ };
+};
