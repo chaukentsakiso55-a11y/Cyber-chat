@@ -32,7 +32,7 @@ $('resetPassword').onclick=()=>CyberAuth.reset($('email').value.trim());
 $('verifyStatus').onclick=()=>CyberAuth.status();
 $('firebaseLogout').onclick=()=>CyberAuth.logout();
 $('logout').onclick=()=>CyberAuth.logout();
-window.onCyberAuth=e=>{notice(e.message||'');let active=!!e.uid;$('auth').hidden=active;$('firebaseStatus').hidden=!active;$('app').hidden=true;$('codeGate').hidden=true;if(active)$('firebaseAccount').textContent=(e.email||e.uid)+(e.verified?' - Verified':' - Email not verified')};
+window.onCyberAuth=e=>{if(e.type==='token'){window.firebaseIdToken=e.token;return;}notice(e.message||'');let active=!!e.uid;$('auth').hidden=active;$('firebaseStatus').hidden=!active;$('app').hidden=true;$('codeGate').hidden=true;if(active){$('firebaseAccount').textContent=(e.email||e.uid)+(e.verified?' - Verified':' - Email not verified');$('resendVerification').hidden=!!e.verified;$('verifyStatus').hidden=!!e.verified;$('accountNext').hidden=!e.verified;}};
 CyberAuth.status();
 }
 
@@ -72,5 +72,5 @@ $('welcomeLogin').onclick=()=>openCredentials('login');
 $('welcomeRegister').onclick=()=>openCredentials('register');
 $('emailLogin').onclick=()=>openCredentials('login');
 $('backWelcome').onclick=()=>{credentials.hidden=true;welcome.hidden=false;};
-$('googleLogin').onclick=()=>notice('Google sign-in is not yet available in this build. Use email sign-in.');
+$('googleLogin').onclick=()=>{if(window.CyberAuth)CyberAuth.google();else notice('Google sign-in requires the Android app.');};
 $('resendVerification').onclick=()=>{if(window.CyberAuth)CyberAuth.resendVerification();};
