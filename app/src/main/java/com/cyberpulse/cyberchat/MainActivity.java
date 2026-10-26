@@ -2,6 +2,8 @@ package com.cyberpulse.cyberchat;
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Intent;
+import android.content.ComponentName;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.webkit.*;
 import android.view.*;
@@ -27,6 +29,8 @@ public class MainActivity extends Activity {
  }
  private void authEvent(String type,String message){try{JSONObject o=new JSONObject();o.put("type",type);o.put("message",message);FirebaseUser u=FirebaseAuth.getInstance().getCurrentUser();if(u!=null){o.put("uid",u.getUid());o.put("email",u.getEmail());o.put("verified",u.isEmailVerified());}String json=o.toString();runOnUiThread(()->web.evaluateJavascript("window.onCyberAuth&&window.onCyberAuth("+json+")",null));}catch(Exception ignored){}}
  public class AuthBridge {
+ @JavascriptInterface public void setIcon(String choice){runOnUiThread(()->{try{PackageManager pm=getPackageManager();String pkg=getPackageName();String active="dark".equals(choice)?"CyberChatDark":"CyberChatBlue";String other="dark".equals(choice)?"CyberChatBlue":"CyberChatDark";pm.setComponentEnabledSetting(new ComponentName(pkg,pkg+"."+active),PackageManager.COMPONENT_ENABLED_STATE_ENABLED,PackageManager.DONT_KILL_APP);pm.setComponentEnabledSetting(new ComponentName(pkg,pkg+"."+other),PackageManager.COMPONENT_ENABLED_STATE_DISABLED,PackageManager.DONT_KILL_APP);authEvent("icon","Launcher icon updated");}catch(Exception e){authEvent("error","Could not change launcher icon");}});}
+
  @JavascriptInterface public void login(String email,String password){runOnUiThread(()->FirebaseAuth.getInstance().signInWithEmailAndPassword(email,password).addOnCompleteListener(t->{if(t.isSuccessful())authEvent("login","Signed in with Firebase");else authEvent("error",t.getException()!=null?t.getException().getMessage():"Sign-in failed");}));}
  @JavascriptInterface public void register(String email,String password){runOnUiThread(()->FirebaseAuth.getInstance().createUserWithEmailAndPassword(email,password).addOnCompleteListener(t->{if(t.isSuccessful()){FirebaseUser u=FirebaseAuth.getInstance().getCurrentUser();if(u!=null)u.sendEmailVerification().addOnCompleteListener(v->authEvent("registered",v.isSuccessful()?"Account created. Check your email to verify it.":"Account created, but verification email could not be sent."));}else authEvent("error",t.getException()!=null?t.getException().getMessage():"Registration failed");}));}
  @JavascriptInterface public void reset(String email){runOnUiThread(()->FirebaseAuth.getInstance().sendPasswordResetEmail(email).addOnCompleteListener(t->authEvent(t.isSuccessful()?"reset":"error",t.isSuccessful()?"Password reset email sent":t.getException()!=null?t.getException().getMessage():"Reset failed")));}
