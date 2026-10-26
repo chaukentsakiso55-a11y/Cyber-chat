@@ -4,7 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -45,3 +45,14 @@ jobs:
           name: CyberChat-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      - name: Prepare direct-download APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk CyberChat-v0.2.0-beta.apk
+      - name: Publish APK to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.2.0-beta >/dev/null 2>&1; then
+            gh release upload v0.2.0-beta CyberChat-v0.2.0-beta.apk --clobber
+          else
+            gh release create v0.2.0-beta CyberChat-v0.2.0-beta.apk --target "$GITHUB_SHA" --title 'CyberChat v0.2.0 Beta' --notes 'Android debug APK for testing. Some requested features are not yet implemented.' --prerelease
+          fi
