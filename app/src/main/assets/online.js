@@ -24,3 +24,14 @@ $('gateLogout').onclick=()=>{$('logout').click();$('codeGate').hidden=true};
 $('addPerson').onclick=async()=>{const email=$('personEmail').value.trim();if(!email)return notice('Enter a member email address.');try{const id=await api('/rest/v1/rpc/cyberchat_start_chat_by_email','POST',{p_email:email});selected={id,title:email};$('chat').hidden=false;$('chatname').textContent=email;$('personEmail').value='';await rooms();await messages();notice('Chat ready')}catch(e){notice(e.message)}};
 async function loadAccounts(){try{const rows=await api('/rest/v1/rpc/cyberchat_admin_accounts','POST',{});const panel=$('newAccounts');panel.replaceChildren();for(const m of rows){const line=document.createElement('p');const label=document.createElement('span');label.textContent=(m.display_name||'Member')+' — '+m.email+' — '+(m.approved?'Approved':'Awaiting access')+' — '+new Date(m.created_at).toLocaleDateString()+' ';line.appendChild(label);if(m.id!==user.id){const b=document.createElement('button');b.textContent=m.approved?'Suspend':'Approve';b.onclick=async()=>{try{await api('/rest/v1/rpc/cyberchat_admin_set_approval','POST',{p_user:m.id,p_approved:!m.approved});await loadAccounts()}catch(e){notice(e.message)}};line.appendChild(b)}panel.appendChild(line)}if(!rows.length)panel.textContent='No registered accounts yet.'}catch(e){notice(e.message)}}
 $('refreshAccounts').onclick=loadAccounts;
+
+if(window.CyberAuth){
+$('login').onclick=()=>CyberAuth.login($('email').value.trim(),$('password').value);
+$('signup').onclick=()=>CyberAuth.register($('email').value.trim(),$('password').value);
+$('resetPassword').onclick=()=>CyberAuth.reset($('email').value.trim());
+$('verifyStatus').onclick=()=>CyberAuth.status();
+$('firebaseLogout').onclick=()=>CyberAuth.logout();
+$('logout').onclick=()=>CyberAuth.logout();
+window.onCyberAuth=e=>{notice(e.message||'');let active=!!e.uid;$('auth').hidden=active;$('firebaseStatus').hidden=!active;$('app').hidden=true;$('codeGate').hidden=true;if(active)$('firebaseAccount').textContent=(e.email||e.uid)+(e.verified?' - Verified':' - Email not verified')};
+CyberAuth.status();
+}
