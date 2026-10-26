@@ -62,3 +62,5 @@ $('clearWallpaper').addEventListener('click',()=>{
  wallpaperUrl=null;$('wallpaperSound').checked=false;
  notice('Video wallpaper removed.');
 });
+
+$('applyIcon').onclick=()=>{if(!window.CyberAuth)return notice('Android icon settings unavailable');CyberAuth.setIcon($('iconChoice').value);};
