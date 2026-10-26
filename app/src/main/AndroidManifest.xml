@@ -1,1 +1,7 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:theme="@android:style/Theme.Material.NoActionBar" android:label="CyberChat" android:usesCleartextTraffic="false"><activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<uses-permission android:name="android.permission.INTERNET"/>
+<application android:theme="@android:style/Theme.Material.NoActionBar" android:label="CyberChat" android:usesCleartextTraffic="false" android:icon="@drawable/ic_cyberchat">
+<activity android:name=".MainActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
+<activity-alias android:name=".CyberChatBlue" android:enabled="true" android:exported="true" android:targetActivity=".MainActivity" android:icon="@drawable/ic_cyberchat" android:label="CyberChat"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity-alias>
+<activity-alias android:name=".CyberChatDark" android:enabled="false" android:exported="true" android:targetActivity=".MainActivity" android:icon="@drawable/ic_cyberchat_dark" android:label="CyberChat"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity-alias>
+</application></manifest>
