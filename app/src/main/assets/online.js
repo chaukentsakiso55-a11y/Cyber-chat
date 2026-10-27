@@ -8,7 +8,7 @@ async function auth(signup){try{const email=$('email').value.trim(),password=$('
 $('login').onclick=()=>auth(false);$('signup').onclick=()=>auth(true);
 $('logout').onclick=async()=>{try{await api('/auth/v1/logout','POST')}catch{}access='';refreshToken='';user=null;selected=null;localStorage.removeItem('cyberchat_session');if(refreshTimer)clearInterval(refreshTimer);$('auth').hidden=false;$('app').hidden=true;notice('Signed out')};
 async function directory(){try{const members=await api('/rest/v1/profiles?approved=eq.true&select=id,display_name&order=display_name.asc');$('directory').replaceChildren();for(const m of members){const p=document.createElement('p');p.textContent=m.display_name+' ';if(m.id!==user.id){const b=document.createElement('button');b.textContent='Message';b.onclick=async()=>{try{const id=await api('/rest/v1/rpc/start_direct_chat','POST',{other_user:m.id});selected={id,title:m.display_name};$('chat').hidden=false;$('chatname').textContent=m.display_name;await rooms();await messages()}catch(e){notice(e.message)}};p.appendChild(b)}$('directory').appendChild(p)}if(!members.length)$('directory').textContent='No approved members yet.'}catch(e){notice(e.message)}}
-async function rooms(){try{const list=await api('/rest/v1/conversations?select=id,title&order=created_at.desc');$('rooms').replaceChildren();for(const c of list){const b=document.createElement('button');b.textContent=c.title||'Conversation';b.onclick=()=>{selected=c;$('chat').hidden=false;$('chatname').textContent=c.title||'Chat';messages()};$('rooms').appendChild(b)}if(!list.length)$('rooms').textContent='No chats yet.'}catch(e){notice(e.message)}}
+async function rooms(){try{const list=await api('/rest/v1/conversations?select=id,title&order=created_at.desc');$('rooms').replaceChildren();for(const c of list){const b=document.createElement('button');b.textContent=c.title||'Conversation';b.onclick=()=>{selected=c;$('chat').hidden=false;$('chatname').textContent=c.title||'Chat';messages()};$('rooms').appendChild(b)}if(!list.length)$('rooms').textContent='No chats yet.';const home=$('chatListHome');home.replaceChildren();for(const item of $('rooms').children){const copy=item.cloneNode(true);if(item.tagName==='BUTTON')copy.onclick=item.onclick;home.appendChild(copy)}if(!list.length)home.textContent='No conversations yet. Tap New chat to begin.'}catch(e){$('chatConnection').textContent=e.message;notice(e.message)}}
 $('create').onclick=async()=>{try{await api('/rest/v1/conversations','POST',{title:$('title').value.trim()||'New chat',is_group:true,created_by:user.id});$('title').value='';await rooms()}catch(e){notice(e.message)}};
 $('addMember').onclick=async()=>{if(!selected)return notice('Choose a group first.');const id=$('memberId').value.trim();if(!id)return notice('Choose a member from the directory or enter a member ID.');try{await api('/rest/v1/rpc/add_group_member','POST',{group_id:selected.id,new_member:id});$('memberId').value='';notice('Member added')}catch(e){notice(e.message)}};
 async function messages(){if(!selected)return;try{const rows=await api('/rest/v1/messages?conversation_id=eq.'+encodeURIComponent(selected.id)+'&select=sender_id,body,created_at&order=created_at.asc&limit=200');$('messages').replaceChildren();for(const m of rows){const p=document.createElement('p');p.textContent=(m.sender_id===user.id?'You: ':'Member: ')+m.body;$('messages').appendChild(p)}}catch(e){notice(e.message)}}
@@ -39,6 +39,7 @@ function showFirebaseHome(e){
  $('directory').textContent='Connecting member directory…';
  $('rooms').textContent='Connecting conversations…';
  $('chat').hidden=true;
+ showTab('chats');
  notice('Welcome to CyberChat · '+(e.email||'Member'));
  $('backendStatus').textContent='Connecting messaging…';
  if(window.CyberAuth)CyberAuth.token();
@@ -53,7 +54,7 @@ window.onCyberAuth=async e=>{
    access=e.token;
    const response=await api('/rest/v1/rpc/cyberchat_my_role','POST',{});
    if(response==='pending')throw Error('Messaging profile is not provisioned in Supabase yet.');
-   $('directory').textContent='';$('rooms').textContent='';
+   $('directory').textContent='';$('rooms').textContent='';$('chatConnection').textContent='Connected securely';
    directory();rooms();
    if(refreshTimer)clearInterval(refreshTimer);
    refreshTimer=setInterval(()=>{if(selected)messages()},4000);
@@ -61,7 +62,7 @@ window.onCyberAuth=async e=>{
   }catch(err){
    access='';
    $('directory').textContent='Messaging unavailable until Firebase–Supabase account integration is configured.';
-   $('rooms').textContent=err.message;
+   $('rooms').textContent=err.message;$('chatConnection').textContent='Messaging unavailable: '+err.message;
    notice('Signed in · Messaging connection pending');
   }
   return;
@@ -119,3 +120,14 @@ $('backWelcome').onclick=()=>{credentials.hidden=true;welcome.hidden=false;};
 $('googleLogin').onclick=()=>{if(window.CyberAuth)CyberAuth.google();else notice('Google sign-in requires the Android app.');};
 $('resendVerification').onclick=()=>{if(window.CyberAuth)CyberAuth.resendVerification();};
 
+
+function showTab(tab){
+ const tabs={chats:'chatsHome',new:'newChatPanel',settings:'settingsPanel'};
+ for(const [name,id] of Object.entries(tabs))$(id).hidden=name!==tab;
+ for(const [name,id] of Object.entries({chats:'tabChats',new:'tabNew',settings:'tabSettings'}))$(id).classList.toggle('active',name===tab);
+ if(tab!=='chats')$('chat').hidden=true;
+}
+$('tabChats').onclick=()=>showTab('chats');
+$('tabNew').onclick=()=>showTab('new');
+$('tabSettings').onclick=()=>showTab('settings');
+$('newChatShortcut').onclick=()=>showTab('new');
