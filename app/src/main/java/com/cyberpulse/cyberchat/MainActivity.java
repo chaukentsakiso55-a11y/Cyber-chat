@@ -67,6 +67,66 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void deleteApiKey(String provider){
    if(provider!=null&&provider.matches("[a-z]{2,24}"))getSharedPreferences("cyberchat_secure_providers",MODE_PRIVATE).edit().remove(provider).apply();
   }
+
+  private String[] readProvider(String provider)throws Exception{
+   String value=getSharedPreferences("cyberchat_secure_providers",MODE_PRIVATE).getString(provider,null);
+   if(value==null)throw new Exception("No API key saved for "+provider+". Open Settings > AI API Keys.");
+   String[] parts=value.split(":",2);
+   java.security.KeyStore store=java.security.KeyStore.getInstance("AndroidKeyStore");store.load(null);
+   javax.crypto.SecretKey secret=(javax.crypto.SecretKey)store.getKey("cyberchat_byok",null);
+   javax.crypto.Cipher cipher=javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");
+   cipher.init(javax.crypto.Cipher.DECRYPT_MODE,secret,new javax.crypto.spec.GCMParameterSpec(128,android.util.Base64.decode(parts[0],android.util.Base64.DEFAULT)));
+   String decoded=new String(cipher.doFinal(android.util.Base64.decode(parts[1],android.util.Base64.DEFAULT)),java.nio.charset.StandardCharsets.UTF_8);
+   int cut=decoded.indexOf("\\n");
+   if(cut<0)cut=decoded.indexOf('\n');
+   return cut<0?new String[]{decoded,""}:new String[]{decoded.substring(0,cut),decoded.substring(cut+(decoded.charAt(cut)=='\\'?2:1))};
+  }
+  @JavascriptInterface public boolean hasApiKey(String provider){
+   if(provider==null)return false;
+   return getSharedPreferences("cyberchat_secure_providers",MODE_PRIVATE).contains(provider);
+  }
+  @JavascriptInterface public void askAI(String provider,String prompt,String requestId){
+   if(provider==null||!provider.matches("[a-z]{2,24}")||prompt==null||prompt.trim().isEmpty())return;
+   new Thread(()->{
+    boolean ok=false;String answer="";
+    try{
+     String[] stored=readProvider(provider);
+     String key=stored[0],custom=stored[1];String url,model;org.json.JSONObject payload=new org.json.JSONObject();
+     if("gemini".equals(provider)){
+      url="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+      org.json.JSONArray parts=new org.json.JSONArray().put(new org.json.JSONObject().put("text",prompt));
+      payload.put("contents",new org.json.JSONArray().put(new org.json.JSONObject().put("parts",parts)));
+     }else{
+      if("openai".equals(provider)){url="https://api.openai.com/v1/chat/completions";model="gpt-4.1-mini";}
+      else if("openrouter".equals(provider)){url="https://openrouter.ai/api/v1/chat/completions";model="openai/gpt-4.1-mini";}
+      else if("xai".equals(provider)){url="https://api.x.ai/v1/chat/completions";model="grok-3-mini";}
+      else if("fireworks".equals(provider)){url="https://api.fireworks.ai/inference/v1/chat/completions";model="accounts/fireworks/models/llama-v3p1-8b-instruct";}
+      else if("custom".equals(provider)){url=custom;model="default";}
+      else throw new Exception("This provider is not connected yet.");
+      if(!url.startsWith("https://"))throw new Exception("Provider endpoint must use HTTPS.");
+      payload.put("model",model);
+      payload.put("messages",new org.json.JSONArray().put(new org.json.JSONObject().put("role","user").put("content",prompt)));
+     }
+     java.net.HttpURLConnection connection=(java.net.HttpURLConnection)new java.net.URL(url).openConnection();
+     connection.setRequestMethod("POST");connection.setConnectTimeout(15000);connection.setReadTimeout(45000);connection.setDoOutput(true);
+     connection.setRequestProperty("Content-Type","application/json");
+     if("gemini".equals(provider))connection.setRequestProperty("x-goog-api-key",key);
+     else connection.setRequestProperty("Authorization","Bearer "+key);
+     try(java.io.OutputStream out=connection.getOutputStream()){out.write(payload.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+     int status=connection.getResponseCode();
+     java.io.InputStream stream=status>=200&&status<300?connection.getInputStream():connection.getErrorStream();
+     java.io.ByteArrayOutputStream buffer=new java.io.ByteArrayOutputStream();byte[] chunk=new byte[4096];int count;
+     while((count=stream.read(chunk))!=-1){buffer.write(chunk,0,count);if(buffer.size()>1000000)throw new Exception("AI response exceeded size limit");}
+     org.json.JSONObject result=new org.json.JSONObject(buffer.toString("UTF-8"));
+     if(status<200||status>=300)throw new Exception(result.optJSONObject("error")!=null?result.getJSONObject("error").optString("message","Provider HTTP "+status):"Provider HTTP "+status);
+     if("gemini".equals(provider))answer=result.getJSONArray("candidates").getJSONObject(0).getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text");
+     else answer=result.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content");
+     ok=true;
+    }catch(Exception e){answer=e.getMessage()==null?"AI request failed":e.getMessage();}
+    final boolean success=ok;final String response=answer;
+    runOnUiThread(()->web.evaluateJavascript("window.cyberAiResult("+org.json.JSONObject.quote(requestId)+","+(success?"true":"false")+","+org.json.JSONObject.quote(response)+")",null));
+   }).start();
+  }
   @JavascriptInterface public void setIcon(String choice){
    runOnUiThread(()->{
     try{
