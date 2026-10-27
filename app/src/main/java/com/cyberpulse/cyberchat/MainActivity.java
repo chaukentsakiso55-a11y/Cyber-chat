@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
    }
   });
   setContentView(web);
-  web.loadUrl("file:///android_asset/online.html");
+  web.loadUrl("file:///android_asset/index.html");
  }
  public class SettingsBridge {
   @JavascriptInterface public void saveApiKey(String provider,String key,String endpoint){
