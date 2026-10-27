@@ -86,6 +86,6 @@ public class MainActivity extends Activity {
   if(r==PICK&&picker!=null){picker.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(c,data));picker=null;}
  }
  @Override public void onBackPressed(){
-  web.evaluateJavascript("(function(){var c=document.getElementById('chat');if(c&&!c.hidden){c.hidden=true;return true}var a=document.getElementById('app');if(a&&!a.hidden){var t=document.getElementById('tabChats');t.click();return true}return false})()",v->{if("false".equals(v))super.onBackPressed();});
+  web.evaluateJavascript("(function(){var b=document.querySelector('[data-a=close]');var s=document.querySelector('[data-a=sback]');if(s){s.click();return true}if(b&&document.querySelector('.split.open')){b.click();return true}var c=document.querySelector('[data-a=tab][data-v=chats]');if(c){c.click();return true}return false})()",v->{if("false".equals(v))super.onBackPressed();});
  }
 }
