@@ -3,7 +3,7 @@ const base=window.CYBERCHAT_CONFIG?.url;const key=window.CYBERCHAT_CONFIG?.publi
 async function api(path,method='GET',payload){if(!base||!key)throw Error('Supabase configuration missing.');const headers={apikey:key,'Content-Type':'application/json'};if(access)headers.Authorization='Bearer '+access;const r=await fetch(base+path,{method,headers,body:payload?JSON.stringify(payload):undefined});const raw=await r.text();let result;try{result=JSON.parse(raw)}catch{result=raw}if(!r.ok)throw Error(result?.message||result?.msg||result?.error_description||'Request failed');return result}
 function storeSession(data){access=data.access_token;refreshToken=data.refresh_token||refreshToken;expiresAt=Date.now()+(data.expires_in||3600)*1000;user=data.user||user;localStorage.setItem('cyberchat_session',JSON.stringify({access,refreshToken,expiresAt,user}))}
 async function renewSession(){if(!refreshToken)return false;try{const r=await api('/auth/v1/token?grant_type=refresh_token','POST',{refresh_token:refreshToken});storeSession(r);return true}catch{localStorage.removeItem('cyberchat_session');return false}}
-async function showApp(){ $('auth').hidden=true;showTab('chats');let role;try{role=await api('/rest/v1/rpc/cyberchat_my_role','POST',{})}catch(e){notice(e.message);return}if(role==='pending'){$('codeGate').hidden=false;$('app').hidden=true;notice('Enter your CyberPulse access code.');return}$('codeGate').hidden=true;$('app').hidden=false;$('adminPanel').hidden=role!=='admin';notice('Connected as '+(user.email||user.id));if(role==='admin')loadAccounts();directory();rooms();if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(()=>{if(selected)messages()},4000)}
+async function showApp(){ $('auth').hidden=true;showTab('chats');let role;try{role=await api('/rest/v1/rpc/cyberchat_my_role','POST',{})}catch(e){notice(e.message);return}if(role==='pending'){$('codeGate').hidden=true;$('app').hidden=false;notice('Your messaging profile is not ready yet. Please sign out and try again.');$('chatConnection').textContent='Messaging profile not ready';return}$('codeGate').hidden=true;$('app').hidden=false;$('adminPanel').hidden=role!=='admin';notice('Connected as '+(user.email||user.id));if(role==='admin')loadAccounts();directory();rooms();if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(()=>{if(selected)messages()},4000)}
 async function auth(signup){try{const email=$('email').value.trim(),password=$('password').value;if(!email||password.length<6)throw Error('Enter an email and a password of at least 6 characters.');const body={email,password};if(signup){body.data={display_name:$('nickname').value.trim()||'CyberChat Member'}}const result=await api(signup?'/auth/v1/signup':'/auth/v1/token?grant_type=password','POST',body);if(!result.access_token){notice('Check your email to confirm your registration, then sign in.');return}storeSession(result);showApp()}catch(e){notice(e.message)}}
 $('login').onclick=()=>auth(false);$('signup').onclick=()=>auth(true);
 $('logout').onclick=async()=>{try{await api('/auth/v1/logout','POST')}catch{}access='';refreshToken='';user=null;selected=null;localStorage.removeItem('cyberchat_session');if(refreshTimer)clearInterval(refreshTimer);$('auth').hidden=false;$('app').hidden=true;notice('Signed out')};
@@ -25,61 +25,6 @@ $('addPerson').onclick=async()=>{const email=$('personEmail').value.trim();if(!e
 async function loadAccounts(){try{const rows=await api('/rest/v1/rpc/cyberchat_admin_accounts','POST',{});const panel=$('newAccounts');panel.replaceChildren();for(const m of rows){const line=document.createElement('p');const label=document.createElement('span');label.textContent=(m.display_name||'Member')+' — '+m.email+' — '+(m.approved?'Approved':'Awaiting access')+' — '+new Date(m.created_at).toLocaleDateString()+' ';line.appendChild(label);if(m.id!==user.id){const b=document.createElement('button');b.textContent=m.approved?'Suspend':'Approve';b.onclick=async()=>{try{await api('/rest/v1/rpc/cyberchat_admin_set_approval','POST',{p_user:m.id,p_approved:!m.approved});await loadAccounts()}catch(e){notice(e.message)}};line.appendChild(b)}panel.appendChild(line)}if(!rows.length)panel.textContent='No registered accounts yet.'}catch(e){notice(e.message)}}
 $('refreshAccounts').onclick=loadAccounts;
 
-if(window.CyberAuth){
-$('login').onclick=()=>CyberAuth.login($('email').value.trim(),$('password').value);
-$('signup').onclick=()=>CyberAuth.register($('email').value.trim(),$('password').value);
-$('resetPassword').onclick=()=>CyberAuth.reset($('email').value.trim());
-$('verifyStatus').onclick=()=>CyberAuth.status();
-$('firebaseLogout').onclick=()=>CyberAuth.logout();
-$('logout').onclick=()=>CyberAuth.logout();
-function showFirebaseHome(e){
- user={id:e.uid,email:e.email||'',firebase:true};
- $('auth').hidden=true;$('firebaseStatus').hidden=true;$('codeGate').hidden=true;$('app').hidden=false;
- $('adminPanel').hidden=true;
- $('directory').textContent='Connecting member directory…';
- $('rooms').textContent='Connecting conversations…';
- $('chat').hidden=true;
- showTab('chats');
- notice('Welcome to CyberChat · '+(e.email||'Member'));
- $('backendStatus').textContent='Connecting messaging…';
- if(window.CyberAuth)CyberAuth.token();
-}
-window.onCyberAuth=async e=>{
- if(e.type==='token'){
-  window.firebaseIdToken=e.token;
-  if(!user?.firebase)return;
-  try{
-   const claims=JSON.parse(atob(e.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-   if(claims.role!=='authenticated')throw Error('Messaging setup incomplete: Firebase authenticated role claim is missing.');
-   access=e.token;
-   const response=await api('/rest/v1/rpc/cyberchat_my_role','POST',{});
-   if(response==='pending')throw Error('Messaging profile is not provisioned in Supabase yet.');
-   $('directory').textContent='';$('rooms').textContent='';$('chatConnection').textContent='Connected securely';
-   directory();rooms();
-   if(refreshTimer)clearInterval(refreshTimer);
-   refreshTimer=setInterval(()=>{if(selected)messages()},4000);
-   notice('CyberChat messaging connected');
-  }catch(err){
-   access='';
-   $('directory').textContent='Messaging unavailable until Firebase–Supabase account integration is configured.';
-   $('rooms').textContent=err.message;$('chatConnection').textContent='Messaging unavailable: '+err.message;
-   notice('Signed in · Messaging connection pending');
-  }
-  return;
- }
- if(e.type==='logout'){
-  access='';user=null;selected=null;window.firebaseIdToken=null;
-  if(refreshTimer)clearInterval(refreshTimer);
-  $('auth').hidden=false;$('firebaseStatus').hidden=true;$('app').hidden=true;
-  $('credentials').hidden=true;$('auth').querySelector('.welcome').hidden=false;
-  notice('Signed out');return;
- }
- if(e.type==='error'){notice(e.message||'Sign-in failed');return;}
- if(e.uid){showFirebaseHome(e);return;}
- notice(e.message||'Sign in to CyberChat');
-};
-CyberAuth.status();
-}
 
 let wallpaperUrl=null;
 const wallpaperVideo=$('chatWallpaper');
@@ -108,7 +53,7 @@ $('clearWallpaper').addEventListener('click',()=>{
  notice('Video wallpaper removed.');
 });
 
-$('applyIcon').onclick=()=>{if(!window.CyberAuth)return notice('Android icon settings unavailable');CyberAuth.setIcon($('iconChoice').value);};
+$('applyIcon').onclick=()=>{if(!window.CyberSettings)return notice('Android icon settings unavailable');CyberSettings.setIcon($('iconChoice').value);};
 
 const welcome=$('auth').querySelector('.welcome');
 const credentials=$('credentials');
@@ -116,9 +61,10 @@ function openCredentials(mode){welcome.hidden=true;credentials.hidden=false;$('a
 $('welcomeLogin').onclick=()=>openCredentials('login');
 $('welcomeRegister').onclick=()=>openCredentials('register');
 $('emailLogin').onclick=()=>openCredentials('login');
+$('resetPassword').onclick=async()=>{try{const email=$('email').value.trim();if(!email)throw Error('Enter your email first.');await api('/auth/v1/recover','POST',{email});notice('If the email is registered, a password reset link has been sent.')}catch(e){notice(e.message)}};
 $('backWelcome').onclick=()=>{credentials.hidden=true;welcome.hidden=false;};
-$('googleLogin').onclick=()=>{if(window.CyberAuth)CyberAuth.google();else notice('Google sign-in requires the Android app.');};
-$('resendVerification').onclick=()=>{if(window.CyberAuth)CyberAuth.resendVerification();};
+
+
 
 
 function showTab(tab){
