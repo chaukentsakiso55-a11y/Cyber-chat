@@ -47,8 +47,8 @@ public class MainActivity extends Activity {
   web.loadUrl("file:///android_asset/index.html");
  }
  public class SettingsBridge {
-  @JavascriptInterface public void saveApiKey(String provider,String key,String endpoint){
-   if(!provider.matches("[a-z]{2,24}")||key==null||key.isEmpty())return;
+  @JavascriptInterface public boolean saveApiKey(String provider,String key,String endpoint){
+   if(provider==null||!provider.matches("[a-z]{2,24}")||key==null||key.isEmpty())return false;
    try{
     java.security.KeyStore store=java.security.KeyStore.getInstance("AndroidKeyStore");store.load(null);
     javax.crypto.SecretKey secret;
@@ -61,8 +61,9 @@ public class MainActivity extends Activity {
     byte[] bytes=(key+"\\n"+(endpoint==null?"":endpoint)).getBytes(java.nio.charset.StandardCharsets.UTF_8);
     byte[] iv=cipher.getIV(),encrypted=cipher.doFinal(bytes);
     android.content.SharedPreferences.Editor editor=getSharedPreferences("cyberchat_secure_providers",MODE_PRIVATE).edit();
-    editor.putString(provider,android.util.Base64.encodeToString(iv,android.util.Base64.NO_WRAP)+":"+android.util.Base64.encodeToString(encrypted,android.util.Base64.NO_WRAP));editor.apply();
-   }catch(Exception ignored){}
+    editor.putString(provider,android.util.Base64.encodeToString(iv,android.util.Base64.NO_WRAP)+":"+android.util.Base64.encodeToString(encrypted,android.util.Base64.NO_WRAP));if(!editor.commit())return false;
+    return true;
+   }catch(Exception ignored){return false;}
   }
   @JavascriptInterface public void deleteApiKey(String provider){
    if(provider!=null&&provider.matches("[a-z]{2,24}"))getSharedPreferences("cyberchat_secure_providers",MODE_PRIVATE).edit().remove(provider).apply();
