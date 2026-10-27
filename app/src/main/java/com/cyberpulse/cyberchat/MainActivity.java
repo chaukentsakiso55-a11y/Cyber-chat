@@ -47,6 +47,26 @@ public class MainActivity extends Activity {
   web.loadUrl("file:///android_asset/online.html");
  }
  public class SettingsBridge {
+  @JavascriptInterface public void saveApiKey(String provider,String key,String endpoint){
+   if(!provider.matches("[a-z]{2,24}")||key==null||key.isEmpty())return;
+   try{
+    java.security.KeyStore store=java.security.KeyStore.getInstance("AndroidKeyStore");store.load(null);
+    javax.crypto.SecretKey secret;
+    if(!store.containsAlias("cyberchat_byok")){
+     javax.crypto.KeyGenerator generator=javax.crypto.KeyGenerator.getInstance("AES","AndroidKeyStore");
+     generator.init(new android.security.keystore.KeyGenParameterSpec.Builder("cyberchat_byok",android.security.keystore.KeyProperties.PURPOSE_ENCRYPT|android.security.keystore.KeyProperties.PURPOSE_DECRYPT).setBlockModes(android.security.keystore.KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(android.security.keystore.KeyProperties.ENCRYPTION_PADDING_NONE).build());
+     secret=generator.generateKey();
+    }else secret=(javax.crypto.SecretKey)store.getKey("cyberchat_byok",null);
+    javax.crypto.Cipher cipher=javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");cipher.init(javax.crypto.Cipher.ENCRYPT_MODE,secret);
+    byte[] bytes=(key+"\\n"+(endpoint==null?"":endpoint)).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    byte[] iv=cipher.getIV(),encrypted=cipher.doFinal(bytes);
+    android.content.SharedPreferences.Editor editor=getSharedPreferences("cyberchat_secure_providers",MODE_PRIVATE).edit();
+    editor.putString(provider,android.util.Base64.encodeToString(iv,android.util.Base64.NO_WRAP)+":"+android.util.Base64.encodeToString(encrypted,android.util.Base64.NO_WRAP));editor.apply();
+   }catch(Exception ignored){}
+  }
+  @JavascriptInterface public void deleteApiKey(String provider){
+   if(provider!=null&&provider.matches("[a-z]{2,24}"))getSharedPreferences("cyberchat_secure_providers",MODE_PRIVATE).edit().remove(provider).apply();
+  }
   @JavascriptInterface public void setIcon(String choice){
    runOnUiThread(()->{
     try{
